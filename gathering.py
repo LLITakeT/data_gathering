@@ -124,33 +124,60 @@ pep8 .
 import logging
 
 import sys
+import os, re  #спрятать в отдельный класс
 
 from scrappers.scrapper import Scrapper
 from storages.file_storage import FileStorage
+from bs4 import BeautifulSoup  # спрятать в отдельный класс
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-
-SCRAPPED_FILE = 'scrapped_data.txt'
+SCRAPPING_PAGES_COUNT = 1
+SCRAPPING_DIRECTORY = './ScrappedData'
+SCRAPPING_FILE = 'scrapped_data.txt'
 TABLE_FORMAT_FILE = 'data.csv'
+TRANSFORMED_FILE = 'scrapped_page_%d.txt'
 
 
 def gather_process():
     logger.info("gather")
-    storage = FileStorage(SCRAPPED_FILE)
+    storage = FileStorage(SCRAPPING_FILE)
 
     # You can also pass a storage
     scrapper = Scrapper()
-    scrapper.scrap_process(storage)
+    scrapper.scrap_process(storage, SCRAPPING_DIRECTORY, SCRAPPING_PAGES_COUNT)
 
 
 def convert_data_to_table_format():
     logger.info("transform")
 
+    for filename in os.listdir(SCRAPPING_DIRECTORY):
+        with open(SCRAPPING_DIRECTORY + '/' + filename, encoding='utf-8') as input_file:
+            text = input_file.read()
+        soup = BeautifulSoup(text, 'lxml')
+        id = filename
+        name = soup.find('div', {'class': 'story__header-title'}).find('a').text
+        rate = soup.find('div', {'class': 'story__rating-count'}).text
+        add_header = soup.find('div', {'class': 'story__header-additional-wrapper'})
+        comment_count_text = add_header.find('a',  {'class': 'story__comments-count story__to-comments'}).text
+        comment_count = re.match('\d+', comment_count_text).group(0)
+        author = add_header.find('a',  {'class': 'story__author'}).text
+        post_datetime = add_header.find('div', {'class': 'story__date'}).find('title')
+        tags = soup.find('div', {'class': 'story__tags'})#.findall('a').text
+        #for tag in tags:
+            #tag_text =
+        print('name: ' + name)
+        print('rate: ' + rate)
+        print('comment_count: ' + comment_count)
+        print('author: ' + author)
+        #print('post_datetime: ' + post_datetime)
+        #print('tags: ' + tags)
+        break
+
     # Your code here
     # transform gathered data from txt file to pandas DataFrame and save as csv
-    pass
+
 
 
 def stats_of_data():
